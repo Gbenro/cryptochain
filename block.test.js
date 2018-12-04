@@ -1,17 +1,21 @@
 const Block = require('./block')
-const { GENESIS_DATA } = require('./config')
+const { GENESIS_DATA, MINE_RATE } = require('./config')
 const cryptoHash = require('./crypto-hash')
 
 describe('Block', () => {
-  const timestamp = 'a-date'
+  const timestamp = 2000
   const lasthash = 'foo-hash'
   const hash = 'bar-hash'
   const data = ['blockchain', 'data']
+  const nonce = 1
+  const difficulty = 1
   const block = new Block({
     timestamp,
     lasthash,
     hash,
-    data
+    data,
+    nonce,
+    difficulty
   })
 
   it('has a timestamp, a lasthash, hash and data property', () => {
@@ -19,6 +23,8 @@ describe('Block', () => {
     expect(block.lasthash).toEqual(lasthash)
     expect(block.hash).toEqual(hash)
     expect(block.data).toEqual(data)
+    expect(block.nonce).toEqual(nonce)
+    expect(block.difficulty).toEqual(difficulty)
   })
 
   describe('genesis()', () => {
@@ -54,8 +60,39 @@ describe('Block', () => {
     })
     it('creates a SHA-256 `hash` based on the proper inputs', () => {
       expect(minedBlock.hash).toEqual(
-        cryptoHash(minedBlock.timestamp, lastBlock.hash, data)
+        cryptoHash(
+          minedBlock.timestamp,
+          minedBlock.nonce,
+          minedBlock.difficulty,
+          lastBlock.hash,
+          data
+        )
       )
+    })
+
+    it('sets a hash that matches the difficulty criteria', () => {
+      expect(minedBlock.hash.substring(0, minedBlock.difficulty)).toEqual(
+        '0'.repeat(minedBlock.difficulty)
+      )
+    })
+  })
+
+  describe('adjust Difficulty()', () => {
+    it('raises the difficulty for a quickly mined block', () => {
+      expect(
+        Block.adjustDifficulty({
+          originalBlock: block,
+          timestamp: block.timestamp + MINE_RATE - 100
+        })
+      ).toEqual(block.difficulty + 1)
+    })
+    it('lowers the difficulty for a quickly mined block', () => {
+      expect(
+        Block.adjustDifficulty({
+          originalBlock: block,
+          timestamp: block.timestamp + MINE_RATE + 100
+        })
+      ).toEqual(block.difficulty - 1)
     })
   })
 })
