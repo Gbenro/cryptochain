@@ -13,9 +13,9 @@ const CHANNELS = {
 }
 
 class PubSub {
-  constructor ({ blockchain }) {
+  constructor ({ blockchain, transactionPool }) {
     this.blockchain = blockchain
-    // this.transactionPool = transactionPool
+    this.transactionPool = transactionPool
 
     this.pubnub = new PubNub(credentials)
 
@@ -31,12 +31,12 @@ class PubSub {
     })
   }
 
-  // broadcastTransaction (transaction) {
-  //   this.publish({
-  //     channel: CHANNELS.TRANSACTION,
-  //     message: JSON.stringify(transaction)
-  //   })
-  // }
+  broadcastTransaction (transaction) {
+    this.publish({
+      channel: CHANNELS.TRANSACTION,
+      message: JSON.stringify(transaction)
+    })
+  }
 
   subscribeToChannels () {
     this.pubnub.subscribe({
@@ -54,23 +54,20 @@ class PubSub {
         )
         const parsedMessage = JSON.parse(message)
 
-        if (channel === CHANNELS.BLOCKCHAIN) {
-          this.blockchain.replaceChain(parsedMessage)
+        switch (channel) {
+          case CHANNELS.BLOCKCHAIN:
+            this.blockchain.replaceChain(parsedMessage)
+            // this.blockchain.replaceChain(parsedMessage, true, () => {
+            //   this.transactionPool.clearBlockchainTransactions({
+            //     chain: parsedMessage.chain
+            //   })
+            // })
+            break
+          case CHANNELS.TRANSACTION:
+            this.transactionPool.setTransaction(parsedMessage)
+            break
+          default:
         }
-
-        // switch (channel) {
-        //   case CHANNELS.BLOCKCHAIN:
-        //     this.blockchain.replaceChain(parsedMessage, true, () => {
-        //       this.transactionPool.clearBlockchainTransactions({
-        //         chain: parsedMessage.chain
-        //       })
-        //     })
-        //     break
-        //   case CHANNELS.TRANSACTION:
-        //     this.transactionPool.setTransaction(parsedMessage)
-        //     break
-        //   default:
-        // }
       }
     }
   }
