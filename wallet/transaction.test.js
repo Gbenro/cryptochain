@@ -1,6 +1,8 @@
 const Transaction = require('./transaction')
 const Wallet = require('./index')
 const { verifySignature } = require('../util')
+const { REWARD_INPUT, MINING_REWARD } = require('../config')
+
 describe('Transaction', () => {
   let transaction, senderWallet, recipient, amount
 
@@ -8,7 +10,6 @@ describe('Transaction', () => {
     senderWallet = new Wallet()
     recipient = 'recipient-public-key'
     amount = 50
-
     transaction = new Transaction({ senderWallet, recipient, amount })
   })
 
@@ -24,7 +25,8 @@ describe('Transaction', () => {
     it('outputs the amount to the recipient', () => {
       expect(transaction.outputMap[recipient]).toEqual(amount)
     })
-    it('outputs the remaining balance for the `senderWallet` ', () => {
+
+    it('outputs the remaining balance for the `senderWallet`', () => {
       expect(transaction.outputMap[senderWallet.publicKey]).toEqual(
         senderWallet.balance - amount
       )
@@ -32,18 +34,22 @@ describe('Transaction', () => {
   })
 
   describe('input', () => {
-    it('has an input', () => {
+    it('has an `input`', () => {
       expect(transaction).toHaveProperty('input')
     })
-    it('has a timestamp in the input', () => {
+
+    it('has a `timestamp` in the input', () => {
       expect(transaction.input).toHaveProperty('timestamp')
     })
-    it('sets the amount to the senderWallet balance', () => {
+
+    it('sets the `amount` to the `senderWallet` balance', () => {
       expect(transaction.input.amount).toEqual(senderWallet.balance)
     })
-    it('sets the the address to the senderwallet publicKey', () => {
+
+    it('sets the `address` to the `senderWallet` publicKey', () => {
       expect(transaction.input.address).toEqual(senderWallet.publicKey)
     })
+
     it('signs the input', () => {
       expect(
         verifySignature({
@@ -55,29 +61,35 @@ describe('Transaction', () => {
     })
   })
 
-  describe('valid Transaction', () => {
+  describe('validTransaction()', () => {
     let errorMock
+
     beforeEach(() => {
       errorMock = jest.fn()
+
       global.console.error = errorMock
     })
+
     describe('when the transaction is valid', () => {
       it('returns true', () => {
         expect(Transaction.validTransaction(transaction)).toBe(true)
       })
     })
-    describe('when the transactionis invalid', () => {
+
+    describe('when the transaction is invalid', () => {
       describe('and a transaction outputMap value is invalid', () => {
-        it('returns false and an error ', () => {
-          transaction.outputMap[senderWallet.publicKey] = 99999999
+        it('returns false and logs an error', () => {
+          transaction.outputMap[senderWallet.publicKey] = 999999
+
           expect(Transaction.validTransaction(transaction)).toBe(false)
           expect(errorMock).toHaveBeenCalled()
         })
       })
 
       describe('and the transaction input signature is invalid', () => {
-        it('returns false and an error ', () => {
+        it('returns false and logs an error', () => {
           transaction.input.signature = new Wallet().sign('data')
+
           expect(Transaction.validTransaction(transaction)).toBe(false)
           expect(errorMock).toHaveBeenCalled()
         })
@@ -160,6 +172,25 @@ describe('Transaction', () => {
           )
         })
       })
+    })
+  })
+
+  describe('rewardTransaction()', () => {
+    let rewardTransaction, minerWallet
+
+    beforeEach(() => {
+      minerWallet = new Wallet()
+      rewardTransaction = Transaction.rewardTransaction({ minerWallet })
+    })
+
+    it('creates a transaction with the reward input', () => {
+      expect(rewardTransaction.input).toEqual(REWARD_INPUT)
+    })
+
+    it('creates one transaction for the miner with the `MINING_REWARD`', () => {
+      expect(rewardTransaction.outputMap[minerWallet.publicKey]).toEqual(
+        MINING_REWARD
+      )
     })
   })
 })

@@ -1,27 +1,27 @@
 const hexToBinary = require('hex-to-binary')
 const Block = require('./block')
 const { GENESIS_DATA, MINE_RATE } = require('../config')
-const cryptoHash = require('../util/crypto-hash')
+const { cryptoHash } = require('../util')
 
 describe('Block', () => {
   const timestamp = 2000
-  const lasthash = 'foo-hash'
+  const lastHash = 'foo-hash'
   const hash = 'bar-hash'
   const data = ['blockchain', 'data']
   const nonce = 1
   const difficulty = 1
   const block = new Block({
     timestamp,
-    lasthash,
+    lastHash,
     hash,
     data,
     nonce,
     difficulty
   })
 
-  it('has a timestamp, a lasthash, hash and data property', () => {
+  it('has a timestamp, lastHash, hash, and data property', () => {
     expect(block.timestamp).toEqual(timestamp)
-    expect(block.lasthash).toEqual(lasthash)
+    expect(block.lastHash).toEqual(lastHash)
     expect(block.hash).toEqual(hash)
     expect(block.data).toEqual(data)
     expect(block.nonce).toEqual(nonce)
@@ -31,7 +31,7 @@ describe('Block', () => {
   describe('genesis()', () => {
     const genesisBlock = Block.genesis()
 
-    it('returns a Block Instance', () => {
+    it('returns a Block instance', () => {
       expect(genesisBlock instanceof Block).toBe(true)
     })
 
@@ -48,17 +48,19 @@ describe('Block', () => {
     it('returns a Block instance', () => {
       expect(minedBlock instanceof Block).toBe(true)
     })
-    it('sets the lasthash to be the has of the lastBlock', () => {
-      expect(minedBlock.lasthash).toEqual(lastBlock.hash)
+
+    it('sets the `lastHash` to be the `hash` of the lastBlock', () => {
+      expect(minedBlock.lastHash).toEqual(lastBlock.hash)
     })
 
     it('sets the `data`', () => {
       expect(minedBlock.data).toEqual(data)
     })
 
-    it('sets the `timestamp`', () => {
+    it('sets a `timestamp`', () => {
       expect(minedBlock.timestamp).not.toEqual(undefined)
     })
+
     it('creates a SHA-256 `hash` based on the proper inputs', () => {
       expect(minedBlock.hash).toEqual(
         cryptoHash(
@@ -71,13 +73,13 @@ describe('Block', () => {
       )
     })
 
-    it('sets a hash that matches the difficulty criteria', () => {
+    it('sets a `hash` that matches the difficulty criteria', () => {
       expect(
         hexToBinary(minedBlock.hash).substring(0, minedBlock.difficulty)
       ).toEqual('0'.repeat(minedBlock.difficulty))
     })
 
-    it('adjusts the difficulty ', () => {
+    it('adjusts the difficulty', () => {
       const possibleResults = [
         lastBlock.difficulty + 1,
         lastBlock.difficulty - 1
@@ -87,7 +89,7 @@ describe('Block', () => {
     })
   })
 
-  describe('adjust Difficulty()', () => {
+  describe('adjustDifficulty()', () => {
     it('raises the difficulty for a quickly mined block', () => {
       expect(
         Block.adjustDifficulty({
@@ -96,7 +98,8 @@ describe('Block', () => {
         })
       ).toEqual(block.difficulty + 1)
     })
-    it('lowers the difficulty for a quickly mined block', () => {
+
+    it('lowers the difficulty for a slowly mined block', () => {
       expect(
         Block.adjustDifficulty({
           originalBlock: block,
@@ -104,6 +107,7 @@ describe('Block', () => {
         })
       ).toEqual(block.difficulty - 1)
     })
+
     it('has a lower limit of 1', () => {
       block.difficulty = -1
 

@@ -7,7 +7,7 @@ const cryptoHash = (...inputs) => {
     inputs
       .map(input => JSON.stringify(input))
       .sort()
-      .join('')
+      .join(' ')
   )
 
   return hash.digest('hex')
